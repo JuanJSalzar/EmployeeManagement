@@ -1,0 +1,188 @@
+﻿@{
+    ViewBag.Title = "Employee";
+}
+
+<main>
+    <div class="container">
+
+        <!-- Title -->
+        <h2 class="mb-3">Employee Management</h2>
+
+        <!-- Add Employee Button -->
+        <div class="d-flex justify-content-end mb-3">
+            <button id="addEmployeeBtn" class="btn btn-success mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle" viewBox="0 0 16 16">
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
+                    <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
+                </svg>
+                Add Employee
+            </button>
+        </div>
+
+        <!-- Employee Table -->
+        <table class="table-hover table">
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Name</th>
+                    <th>Position</th>
+                    <th>Office</th>
+                    <th>Salary</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="employeeTableBody">
+                <tr>
+                    <td colspan="6">
+                        <div class="spinner-border text-primary" role="status"></div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Employee Form Modal -->
+        <div id="employeeModal" class="modal fade">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add Employee</h5>
+                        <button type="button" class="close btn btn-light" data-bs-dismiss="modal" data-dismiss="modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="employeeForm">
+                            <input type="hidden" id="employeeId" name="Id" />
+                            <div class="form-group mb-2">
+                                <label for="Name">Name</label>
+                                <input type="text" class="form-control" id="employeeName" name="Name" placeholder="Juan" required />
+                            </div>
+                            <div class="form-group mb-2">
+                                <label for="Position">Position</label>
+                                <input type="text" class="form-control" id="employeePosition" name="Position" placeholder="Software Engineer" required />
+                            </div>
+                            <div class="form-group mb-2">
+                                <label for="Office">Office</label>
+                                <input type="text" class="form-control" id="employeeOffice" name="Office" placeholder="O. Poblado" required />
+                            </div>
+                            <div class="form-group mb-5">
+                                <label for="Salary">Salary</label>
+                                <input type="number" class="form-control" id="employeeSalary" name="Salary" placeholder="000000" required />
+                            </div>
+                            <button type="submit" class="btn btn-success">Save</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Spinner for loading state -->
+        <div id="spinner" class="visually-hidden">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            // Load employees when the page is ready
+            loadEmployees();
+
+            /**
+             * Function to load employees from the server and display them in the table
+             */
+            function loadEmployees() {
+                $.ajax({
+                    url: '@Url.Action("GetEmployees", "Employee")',
+                    type: 'GET',
+                    dataType: 'json',
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        console.error('Error: ' + textStatus, errorThrown);
+                        alert('An error occurred: ' + textStatus);
+                    },
+                    beforeSend: function () {
+                        // Display the loading spinner while fetching data
+                        let rows = '<tr><td colspan="6">' + document.getElementById("spinner").innerHTML + '</td></tr>';
+                        $('#employeeTableBody').html(rows);
+                    },
+                    success: function (data) {
+                        // Populate the table with employee data
+                        var rows = '';
+                        $.each(data, function (i, employee) {
+                            rows += '<tr>';
+                            rows += '<td>' + employee.Id + '</td>';
+                            rows += '<td>' + employee.Name + '</td>';
+                            rows += '<td>' + employee.Position + '</td>';
+                            rows += '<td>' + employee.Office + '</td>';
+                            rows += '<td>' + employee.Salary + '</td>';
+                            rows += '<td><button class="btn btn-sm btn-outline-warning editBtn" data-id="' + employee.Id + '">Edit</button> <button class="btn btn-sm btn-outline-danger deleteBtn" data-id="' + employee.Id + '">Delete</button></td>';
+                            rows += '</tr>';
+                        });
+                        $('#employeeTableBody').html(rows);
+                    }
+                });
+            }
+
+            /**
+             * Show the modal for adding a new employee
+             */
+            $('#addEmployeeBtn').click(function () {
+                $('#employeeForm')[0].reset();
+                $('#employeeId').val('');
+                $('#employeeModal').modal('show');
+            });
+
+            /**
+             * Load the selected employee's data into the form for editing
+             */
+            $(document).on('click', '.editBtn', function () {
+                var id = $(this).data('id');
+                $.ajax({
+                    url: '@Url.Action("GetEmployeeById", "Employee")/' + id,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function (data) {
+                        $('#employeeId').val(data.Id);
+                        $('#employeeName').val(data.Name);
+                        $('#employeePosition').val(data.Position);
+                        $('#employeeOffice').val(data.Office);
+                        $('#employeeSalary').val(data.Salary);
+                        $('#employeeModal').modal('show');
+                    }
+                });
+            });
+
+            /**
+             * Delete the selected employee
+             */
+            $(document).on('click', '.deleteBtn', function () {
+                if (confirm('Are you sure you want to delete this employee?')) {
+                    var id = $(this).data('id');
+                    $.ajax({
+                        url: '@Url.Action("DeleteEmployee", "Employee")/' + id,
+                        type: 'POST',
+                        success: function (data) {
+                            loadEmployees();
+                        }
+                    });
+                }
+            });
+
+            /**
+             * Submit the employee form to either add or update an employee
+             */
+            $('#employeeForm').submit(function (e) {
+                e.preventDefault();
+                var formData = $(this).serialize();
+                $.ajax({
+                    url: $('#employeeId').val() ? '@Url.Action("UpdateEmployee", "Employee")' : '@Url.Action("AddEmployee", "Employee")',
+                    type: 'POST',
+                    data: formData,
+                    success: function (data) {
+                        $('#employeeModal').modal('hide');
+                        loadEmployees();
+                    }
+                });
+            });
+        });
+    </script>
+
+</main>
