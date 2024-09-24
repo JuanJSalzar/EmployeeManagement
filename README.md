@@ -1,5 +1,3 @@
-﻿Aquí tienes el contenido completo en formato Markdown:
-
 # Employee Management Application
 
 ## Descripción del Proyecto
